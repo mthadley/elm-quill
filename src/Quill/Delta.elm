@@ -61,16 +61,15 @@ decodeOp attrDecoder =
     Decode.oneOf
         [ Decode.map2 Insert
             (Decode.field "insert" Decode.string)
-            (Decode.map (List.filterMap attrDecoder) (attrsFrom "insert"))
+            (Decode.map (List.filterMap attrDecoder) decodeAttrs)
         , Decode.map Delete (Decode.field "delete" Decode.int)
         , Decode.map (\v -> Retain v []) (Decode.field "retain" Decode.int)
         ]
 
 
-attrsFrom : String -> Decoder (List ( String, Encode.Value ))
-attrsFrom opName =
+decodeAttrs : Decoder (List ( String, Encode.Value ))
+decodeAttrs =
     Decode.keyValuePairs Decode.value
-        |> Decode.map (List.filter (\( name, _ ) -> name /= opName))
         |> Decode.field "attributes"
         |> Decode.maybe
         |> Decode.map (Maybe.withDefault [])
