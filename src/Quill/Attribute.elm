@@ -18,6 +18,7 @@ type Attribute
     = Bold
     | Italic
     | Link String
+    | Background String
 
 
 decode : AttrDecoder Attribute
@@ -35,6 +36,12 @@ decode pair =
                 |> Result.toMaybe
                 |> Maybe.map Link
 
+        ( "background", value ) ->
+            value
+                |> Decode.decodeValue Decode.string
+                |> Result.toMaybe
+                |> Maybe.map Background
+
         _ ->
             Nothing
 
@@ -50,3 +57,6 @@ encode attr =
 
         Link url ->
             ( "link", Encode.string url )
+
+        Background color ->
+            ( "background", Encode.string color )

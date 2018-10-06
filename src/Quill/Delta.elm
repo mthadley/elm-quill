@@ -1,4 +1,4 @@
-module Quill.Delta exposing (Delta, decode, encode, init)
+module Quill.Delta exposing (Delta, Op(..), decode, encode, init, toString)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
@@ -18,6 +18,23 @@ type Op attr
 init : Delta attr
 init =
     [ Insert "" [] ]
+
+
+toString : Delta attr -> String
+toString =
+    let
+        opToString op =
+            case op of
+                Insert value _ ->
+                    value
+
+                Delete _ ->
+                    ""
+
+                Retain _ _ ->
+                    ""
+    in
+    List.map opToString >> String.join ""
 
 
 encode : AttrEncoder attr -> Delta attr -> Encode.Value

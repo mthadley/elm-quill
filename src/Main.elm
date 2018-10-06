@@ -4,7 +4,7 @@ import Browser
 import Html as Html exposing (Html)
 import Html.Events as Events
 import Quill
-import Quill.Attribute exposing (Attribute)
+import Quill.Attribute as Attribute exposing (Attribute)
 import Quill.Delta as Delta exposing (Delta)
 import Quill.Range as Range exposing (Range)
 
@@ -46,7 +46,7 @@ view model =
             [ Html.text (Debug.toString model.delta)
             ]
         , Html.button [ Events.onClick Highlight ]
-            [ Html.text "Highlight 10" ]
+            [ Html.text "Highlight Words" ]
         ]
 
 
@@ -66,7 +66,17 @@ update msg model =
             { model | selection = selection, delta = delta }
 
         Highlight ->
-            { model | selection = { index = model.selection.index, length = 10 } }
+            { model | delta = highLightWords model.delta }
+
+
+{-| This logic is very simple, but it gives an idea of what we can do!
+-}
+highLightWords : Delta Attribute -> Delta Attribute
+highLightWords =
+    Delta.toString
+        >> String.words
+        >> List.map (\word -> Delta.Insert word [ Attribute.Background "#ffff00" ])
+        >> List.intersperse (Delta.Insert " " [])
 
 
 
