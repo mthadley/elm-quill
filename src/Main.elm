@@ -4,6 +4,7 @@ import Browser
 import Html as Html exposing (Html)
 import Html.Events as Events
 import Quill
+import Quill.Attribute exposing (Attribute)
 import Quill.Delta as Delta exposing (Delta)
 import Quill.Range as Range exposing (Range)
 
@@ -14,7 +15,7 @@ import Quill.Range as Range exposing (Range)
 
 type alias Model =
     { selection : Range
-    , delta : Delta
+    , delta : Delta Attribute
     }
 
 
@@ -45,7 +46,7 @@ view model =
             [ Html.text (Debug.toString model.delta)
             ]
         , Html.button [ Events.onClick Highlight ]
-            [ Html.text "End" ]
+            [ Html.text "Highlight 10" ]
         ]
 
 
@@ -54,7 +55,7 @@ view model =
 
 
 type Msg
-    = HandleChange Quill.Change
+    = HandleChange (Quill.Change Attribute)
     | Highlight
 
 

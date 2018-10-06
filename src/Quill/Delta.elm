@@ -2,50 +2,75 @@ module Quill.Delta exposing (Delta, decode, encode, init)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
+import Quill.Attribute exposing (AttrDecoder, AttrEncoder)
 
 
-type alias Delta =
-    List Op
+type alias Delta attr =
+    List (Op attr)
 
 
-type Op
-    = Insert String
+type Op attr
+    = Insert String (List attr)
     | Delete Int
-    | Retain Int
+    | Retain Int (List attr)
 
 
-init : Delta
+init : Delta attr
 init =
-    [ Insert "" ]
+    [ Insert "" [] ]
 
 
-encode : Delta -> Encode.Value
-encode delta =
-    Encode.object [ ( "ops", Encode.list encodeOp delta ) ]
+encode : AttrEncoder attr -> Delta attr -> Encode.Value
+encode attrEncoder delta =
+    Encode.object [ ( "ops", Encode.list (encodeOp attrEncoder) delta ) ]
 
 
-encodeOp : Op -> Encode.Value
-encodeOp op =
+encodeOp : AttrEncoder attr -> Op attr -> Encode.Value
+encodeOp attrEncoder op =
     case op of
-        Insert string ->
-            Encode.object [ ( "insert", Encode.string string ) ]
+        Insert string attrs ->
+            Encode.object
+                [ ( "insert", Encode.string string )
+                , ( "attributes", encodeAttrs attrEncoder attrs )
+                ]
 
         Delete count ->
             Encode.object [ ( "delete", Encode.int count ) ]
 
-        Retain count ->
-            Encode.object [ ( "retain", Encode.int count ) ]
+        Retain count attrs ->
+            Encode.object
+                [ ( "retain", Encode.int count )
+                , ( "attributes", encodeAttrs attrEncoder attrs )
+                ]
 
 
-decode : Decoder Delta
-decode =
-    Decode.field "ops" (Decode.list decodeOp)
+encodeAttrs : AttrEncoder attr -> List attr -> Encode.Value
+encodeAttrs attrEncoder =
+    List.map attrEncoder >> Encode.object
 
 
-decodeOp : Decoder Op
-decodeOp =
+decode : AttrDecoder attr -> Decoder (Delta attr)
+decode attrDecoder =
+    decodeOp attrDecoder
+        |> Decode.list
+        |> Decode.field "ops"
+
+
+decodeOp : AttrDecoder attr -> Decoder (Op attr)
+decodeOp attrDecoder =
     Decode.oneOf
-        [ Decode.map Insert (Decode.field "insert" Decode.string)
+        [ Decode.map2 Insert
+            (Decode.field "insert" Decode.string)
+            (Decode.map (List.filterMap attrDecoder) (attrsFrom "insert"))
         , Decode.map Delete (Decode.field "delete" Decode.int)
-        , Decode.map Retain (Decode.field "retain" Decode.int)
+        , Decode.map (\v -> Retain v []) (Decode.field "retain" Decode.int)
         ]
+
+
+attrsFrom : String -> Decoder (List ( String, Encode.Value ))
+attrsFrom opName =
+    Decode.keyValuePairs Decode.value
+        |> Decode.map (List.filter (\( name, _ ) -> name /= opName))
+        |> Decode.field "attributes"
+        |> Decode.maybe
+        |> Decode.map (Maybe.withDefault [])
