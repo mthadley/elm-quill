@@ -58,18 +58,15 @@ decode attrDecoder =
 
 decodeOp : AttrDecoder attr -> Decoder (Op attr)
 decodeOp attrDecoder =
+    let
+        decodeAttrs =
+            Decode.keyValuePairs Decode.value
+                |> Decode.field "attributes"
+                |> Decode.maybe
+                |> Decode.map (Maybe.withDefault [] >> List.filterMap attrDecoder)
+    in
     Decode.oneOf
-        [ Decode.map2 Insert
-            (Decode.field "insert" Decode.string)
-            (Decode.map (List.filterMap attrDecoder) decodeAttrs)
+        [ Decode.map2 Insert (Decode.field "insert" Decode.string) decodeAttrs
         , Decode.map Delete (Decode.field "delete" Decode.int)
-        , Decode.map (\v -> Retain v []) (Decode.field "retain" Decode.int)
+        , Decode.map2 Retain (Decode.field "retain" Decode.int) decodeAttrs
         ]
-
-
-decodeAttrs : Decoder (List ( String, Encode.Value ))
-decodeAttrs =
-    Decode.keyValuePairs Decode.value
-        |> Decode.field "attributes"
-        |> Decode.maybe
-        |> Decode.map (Maybe.withDefault [])
