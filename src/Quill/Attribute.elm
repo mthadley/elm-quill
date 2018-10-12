@@ -1,15 +1,7 @@
-module Quill.Attribute exposing (AttrDecoder, AttrEncoder, Attribute(..), decode, encode)
+module Quill.Attribute exposing (Attribute(..), decode, encode)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-
-
-type alias AttrDecoder attr =
-    ( String, Encode.Value ) -> Maybe attr
-
-
-type alias AttrEncoder attr =
-    attr -> ( String, Encode.Value )
 
 
 {-| The built in Quill attributes, like "bold" and "italics".
@@ -21,32 +13,26 @@ type Attribute
     | Background String
 
 
-decode : AttrDecoder Attribute
+decode : String -> Decoder Attribute
 decode pair =
     case pair of
-        ( "bold", _ ) ->
-            Just Bold
+        "bold" ->
+            Decode.succeed Bold
 
-        ( "italic", _ ) ->
-            Just Italic
+        "italic" ->
+            Decode.succeed Italic
 
-        ( "link", value ) ->
-            value
-                |> Decode.decodeValue Decode.string
-                |> Result.toMaybe
-                |> Maybe.map Link
+        "link" ->
+            Decode.map Link Decode.string
 
-        ( "background", value ) ->
-            value
-                |> Decode.decodeValue Decode.string
-                |> Result.toMaybe
-                |> Maybe.map Background
+        "background" ->
+            Decode.map Background Decode.string
 
-        _ ->
-            Nothing
+        name ->
+            Decode.fail <| "Unsupported attribute \"" ++ name ++ "\""
 
 
-encode : AttrEncoder Attribute
+encode : Attribute -> ( String, Encode.Value )
 encode attr =
     case attr of
         Bold ->

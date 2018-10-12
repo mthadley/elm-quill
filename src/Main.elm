@@ -75,8 +75,13 @@ highLightWords : Delta Attribute -> Delta Attribute
 highLightWords =
     Delta.toString
         >> String.words
-        >> List.map (\word -> Delta.Insert word [ Attribute.Background "#ffff00" ])
-        >> List.intersperse (Delta.Insert " " [])
+        >> List.map
+            (\word ->
+                Delta.Insert
+                    (Delta.Text word)
+                    [ Attribute.Background "#ffff00" ]
+            )
+        >> List.intersperse (Delta.Insert (Delta.Text " ") [])
         >> Delta.fromList
 
 

@@ -1,5 +1,6 @@
 module Quill.Delta exposing
-    ( Delta
+    ( Blot(..)
+    , Delta
     , Op(..)
     , decode
     , encode
@@ -10,17 +11,25 @@ module Quill.Delta exposing
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-import Quill.Attribute exposing (AttrDecoder, AttrEncoder)
 
 
 type Delta attr
     = Delta (List (Op attr))
 
 
+{-| Not all Blots support the same kinds of attributes. If we decide to
+support more than just text in the future, we should adjust the types to
+reflect this.
+-}
 type Op attr
-    = Insert String (List attr)
+    = Insert Blot (List attr)
     | Delete Int
     | Retain Int (List attr)
+
+
+type Blot
+    = Text String
+    | Unsupported Decode.Value
 
 
 
@@ -29,7 +38,7 @@ type Op attr
 
 init : Delta attr
 init =
-    Delta [ Insert "" [] ]
+    Delta [ Insert (Text "\n") [] ]
 
 
 fromList : List (Op attr) -> Delta attr
@@ -46,8 +55,13 @@ toString (Delta ops) =
     let
         opToString op =
             case op of
-                Insert value _ ->
-                    value
+                Insert blot _ ->
+                    case blot of
+                        Text string ->
+                            string
+
+                        Unsupported _ ->
+                            ""
 
                 Delete _ ->
                     ""
@@ -64,17 +78,17 @@ toString (Delta ops) =
 -- CODECS
 
 
-encode : AttrEncoder attr -> Delta attr -> Encode.Value
+encode : (attr -> ( String, Encode.Value )) -> Delta attr -> Encode.Value
 encode attrEncoder (Delta attrs) =
     Encode.object [ ( "ops", Encode.list (encodeOp attrEncoder) attrs ) ]
 
 
-encodeOp : AttrEncoder attr -> Op attr -> Encode.Value
+encodeOp : (attr -> ( String, Encode.Value )) -> Op attr -> Encode.Value
 encodeOp attrEncoder op =
     case op of
-        Insert string attrs ->
+        Insert blot attrs ->
             Encode.object
-                [ ( "insert", Encode.string string )
+                [ ( "insert", encodeBlot blot )
                 , ( "attributes", encodeAttrs attrEncoder attrs )
                 ]
 
@@ -88,12 +102,22 @@ encodeOp attrEncoder op =
                 ]
 
 
-encodeAttrs : AttrEncoder attr -> List attr -> Encode.Value
+encodeAttrs : (attr -> ( String, Encode.Value )) -> List attr -> Encode.Value
 encodeAttrs attrEncoder =
     List.map attrEncoder >> Encode.object
 
 
-decode : AttrDecoder attr -> Decoder (Delta attr)
+encodeBlot : Blot -> Encode.Value
+encodeBlot blot =
+    case blot of
+        Text text ->
+            Encode.string text
+
+        Unsupported value ->
+            value
+
+
+decode : (String -> Decoder attr) -> Decoder (Delta attr)
 decode attrDecoder =
     decodeOp attrDecoder
         |> Decode.list
@@ -101,17 +125,29 @@ decode attrDecoder =
         |> Decode.map Delta
 
 
-decodeOp : AttrDecoder attr -> Decoder (Op attr)
+decodeOp : (String -> Decoder attr) -> Decoder (Op attr)
 decodeOp attrDecoder =
     let
+        decodeAttr ( key, value ) =
+            Result.toMaybe <|
+                Decode.decodeValue (attrDecoder key) value
+
         decodeAttrs =
             Decode.keyValuePairs Decode.value
                 |> Decode.field "attributes"
                 |> Decode.maybe
-                |> Decode.map (Maybe.withDefault [] >> List.filterMap attrDecoder)
+                |> Decode.map (Maybe.withDefault [] >> List.filterMap decodeAttr)
     in
     Decode.oneOf
-        [ Decode.map2 Insert (Decode.field "insert" Decode.string) decodeAttrs
+        [ Decode.map2 Insert
+            (Decode.field "insert"
+                (Decode.oneOf
+                    [ Decode.map Text Decode.string
+                    , Decode.map Unsupported Decode.value
+                    ]
+                )
+            )
+            decodeAttrs
         , Decode.map Delete (Decode.field "delete" Decode.int)
         , Decode.map2 Retain (Decode.field "retain" Decode.int) decodeAttrs
         ]

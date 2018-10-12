@@ -76,6 +76,7 @@ class ElmQuill extends HTMLElement {
 				},
 			});
 
+			console.log(this._quill.getContents());
 			this.dispatchEvent(event);
 		});
 	};

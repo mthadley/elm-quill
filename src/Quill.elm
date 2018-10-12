@@ -5,7 +5,7 @@ import Html.Attributes exposing (property)
 import Html.Events exposing (on)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-import Quill.Attribute as Attribute exposing (AttrDecoder, AttrEncoder, Attribute)
+import Quill.Attribute as Attribute exposing (Attribute)
 import Quill.Delta as Delta exposing (Delta)
 import Quill.Range as Range exposing (Range)
 
@@ -23,7 +23,7 @@ type alias CustomConfig msg attr =
     , onChange : Change attr -> msg
     , content : Delta attr
     , selection : Range
-    , attrDecoder : ( String, Encode.Value ) -> Maybe attr
+    , attrDecoder : String -> Decoder attr
     , attrEncoder : attr -> ( String, Encode.Value )
     }
 
@@ -60,7 +60,7 @@ type alias Change attr =
     }
 
 
-decode : AttrDecoder attr -> Decoder (Change attr)
+decode : (String -> Decoder attr) -> Decoder (Change attr)
 decode attrDecoder =
     Decode.map2 Change
         (Decode.field "range" Range.decode)
