@@ -1,4 +1,4 @@
-module Quill.Range exposing (Range, decode, encode, init)
+module Quill.Range exposing (Range, debug, decode, encode, init)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
@@ -13,6 +13,15 @@ type alias Range =
 init : Range
 init =
     Range 0 0
+
+
+debug : Range -> String
+debug { index, length } =
+    "{ index = "
+        ++ String.fromInt index
+        ++ ", length = "
+        ++ String.fromInt length
+        ++ " }"
 
 
 encode : Range -> Encode.Value

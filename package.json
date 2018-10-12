@@ -9,6 +9,7 @@
   "description": "Using Quill.js and Elm!",
   "main": "index.js",
   "scripts": {
+    "build": "parcel build --no-minify index.html",
     "start": "parcel index.html"
   },
   "author": "Michael Hadley",

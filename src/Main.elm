@@ -40,7 +40,7 @@ view model =
             , onChange = HandleChange
             }
         , Html.pre []
-            [ Html.text (Debug.toString model.selection)
+            [ Html.text (Range.debug model.selection)
             ]
         , Html.pre []
             [ Html.text (Debug.toString model.delta)
