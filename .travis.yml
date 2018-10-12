@@ -2,7 +2,7 @@ language: node_js
 
 env:
   global:
-    - PUBLIC_URL="mthadley.github.io/elm-quill"
+    - PUBLIC_URL="http://mthadley.github.io/elm-quill"
 
 node_js: "node"
 
