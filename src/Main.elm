@@ -77,6 +77,7 @@ highLightWords =
         >> String.words
         >> List.map (\word -> Delta.Insert word [ Attribute.Background "#ffff00" ])
         >> List.intersperse (Delta.Insert " " [])
+        >> Delta.fromList
 
 
 

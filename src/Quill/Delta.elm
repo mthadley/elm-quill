@@ -1,12 +1,20 @@
-module Quill.Delta exposing (Delta, Op(..), decode, encode, init, toString)
+module Quill.Delta exposing
+    ( Delta
+    , Op(..)
+    , decode
+    , encode
+    , fromList
+    , init
+    , toString
+    )
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Quill.Attribute exposing (AttrDecoder, AttrEncoder)
 
 
-type alias Delta attr =
-    List (Op attr)
+type Delta attr
+    = Delta (List (Op attr))
 
 
 type Op attr
@@ -15,13 +23,26 @@ type Op attr
     | Retain Int (List attr)
 
 
+
+-- CREATION
+
+
 init : Delta attr
 init =
-    [ Insert "" [] ]
+    Delta [ Insert "" [] ]
+
+
+fromList : List (Op attr) -> Delta attr
+fromList =
+    Delta
+
+
+
+-- HELPERS
 
 
 toString : Delta attr -> String
-toString =
+toString (Delta ops) =
     let
         opToString op =
             case op of
@@ -34,12 +55,18 @@ toString =
                 Retain _ _ ->
                     ""
     in
-    List.map opToString >> String.join ""
+    ops
+        |> List.map opToString
+        |> String.join ""
+
+
+
+-- CODECS
 
 
 encode : AttrEncoder attr -> Delta attr -> Encode.Value
-encode attrEncoder delta =
-    Encode.object [ ( "ops", Encode.list (encodeOp attrEncoder) delta ) ]
+encode attrEncoder (Delta attrs) =
+    Encode.object [ ( "ops", Encode.list (encodeOp attrEncoder) attrs ) ]
 
 
 encodeOp : AttrEncoder attr -> Op attr -> Encode.Value
@@ -71,6 +98,7 @@ decode attrDecoder =
     decodeOp attrDecoder
         |> Decode.list
         |> Decode.field "ops"
+        |> Decode.map Delta
 
 
 decodeOp : AttrDecoder attr -> Decoder (Op attr)
