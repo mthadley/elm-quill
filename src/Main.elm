@@ -15,7 +15,7 @@ import Quill.Range as Range exposing (Range)
 
 type alias Model =
     { selection : Range
-    , delta : Delta Attribute
+    , delta : Delta (Attribute Never)
     }
 
 
@@ -35,6 +35,7 @@ view model =
     Html.div []
         [ Quill.view
             { placeholder = "Try me!"
+            , theme = Just "snow"
             , content = model.delta
             , selection = model.selection
             , onChange = HandleChange
@@ -55,7 +56,7 @@ view model =
 
 
 type Msg
-    = HandleChange (Quill.Change Attribute)
+    = HandleChange (Quill.Change (Attribute Never))
     | Highlight
 
 
@@ -71,7 +72,7 @@ update msg model =
 
 {-| This logic is very simple, but it gives an idea of what we can do!
 -}
-highLightWords : Delta Attribute -> Delta Attribute
+highLightWords : Delta (Attribute Never) -> Delta (Attribute Never)
 highLightWords =
     Delta.toString
         >> String.words

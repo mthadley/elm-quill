@@ -5,6 +5,10 @@ const Delta = Quill.import('delta');
 class ElmQuill extends HTMLElement {
 	_placeholder = '';
 
+	set theme(value) {
+		this._theme = value
+	}
+
 	set placeholder(value) {
 		this._placeholder = value;
 	}
@@ -40,7 +44,7 @@ class ElmQuill extends HTMLElement {
 
 	_initQuill() {
 		this._quill = new Quill(this._element, {
-			theme: 'snow',
+			theme: this._theme,
 			placeholder: this._placeholder,
 		});
 
@@ -76,7 +80,6 @@ class ElmQuill extends HTMLElement {
 				},
 			});
 
-			console.log(this._quill.getContents());
 			this.dispatchEvent(event);
 		});
 	};

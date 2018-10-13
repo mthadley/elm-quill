@@ -4,23 +4,26 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 
 
-{-| The built in Quill attributes, like "bold" and "italics".
--}
-type Attribute
+type Attribute attr
     = Bold
     | Italic
+    | Underline
     | Link String
     | Background String
+    | Custom attr
 
 
-decode : String -> Decoder Attribute
-decode pair =
+decode : (String -> Decoder attr) -> String -> Decoder (Attribute attr)
+decode decodeAttr pair =
     case pair of
         "bold" ->
             Decode.succeed Bold
 
         "italic" ->
             Decode.succeed Italic
+
+        "underline" ->
+            Decode.succeed Underline
 
         "link" ->
             Decode.map Link Decode.string
@@ -29,11 +32,11 @@ decode pair =
             Decode.map Background Decode.string
 
         name ->
-            Decode.fail <| "Unsupported attribute \"" ++ name ++ "\""
+            Decode.map Custom (decodeAttr name)
 
 
-encode : Attribute -> ( String, Encode.Value )
-encode attr =
+encode : (attr -> ( String, Encode.Value )) -> Attribute attr -> ( String, Encode.Value )
+encode encodeCustom attr =
     case attr of
         Bold ->
             ( "bold", Encode.bool True )
@@ -41,8 +44,14 @@ encode attr =
         Italic ->
             ( "italic", Encode.bool True )
 
+        Underline ->
+            ( "underline", Encode.bool True )
+
         Link url ->
             ( "link", Encode.string url )
 
         Background color ->
             ( "background", Encode.string color )
+
+        Custom customAttr ->
+            encodeCustom customAttr

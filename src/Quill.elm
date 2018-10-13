@@ -12,9 +12,10 @@ import Quill.Range as Range exposing (Range)
 
 type alias Config msg =
     { placeholder : String
-    , onChange : Change Attribute -> msg
-    , content : Delta Attribute
+    , onChange : Change (Attribute Never) -> msg
+    , content : Delta (Attribute Never)
     , selection : Range
+    , theme : Maybe String
     }
 
 
@@ -23,6 +24,7 @@ type alias CustomConfig msg attr =
     , onChange : Change attr -> msg
     , content : Delta attr
     , selection : Range
+    , theme : Maybe String
     , attrDecoder : String -> Decoder attr
     , attrEncoder : attr -> ( String, Encode.Value )
     }
@@ -35,8 +37,9 @@ view config =
         , onChange = config.onChange
         , content = config.content
         , selection = config.selection
-        , attrDecoder = Attribute.decode
-        , attrEncoder = Attribute.encode
+        , theme = config.theme
+        , attrDecoder = \_ -> Decode.fail "No custom attributes."
+        , attrEncoder = \_ -> ( "", Encode.null )
         }
 
 
@@ -44,6 +47,7 @@ viewCustom : CustomConfig msg attr -> Html msg
 viewCustom config =
     Html.node "elm-quill"
         [ property "placeholder" (Encode.string config.placeholder)
+        , property "theme" (encodeMaybe Encode.string config.theme)
         , property "content" (Delta.encode config.attrEncoder config.content)
         , property "selection" (Range.encode config.selection)
         , config.attrDecoder
@@ -66,3 +70,8 @@ decode attrDecoder =
         (Decode.field "range" Range.decode)
         (Decode.field "delta" <| Delta.decode attrDecoder)
         |> Decode.at [ "detail" ]
+
+
+encodeMaybe : (a -> Encode.Value) -> Maybe a -> Encode.Value
+encodeMaybe encoder =
+    Maybe.map encoder >> Maybe.withDefault Encode.null

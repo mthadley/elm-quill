@@ -11,6 +11,7 @@ module Quill.Delta exposing
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
+import Quill.Attribute as Attribute exposing (Attribute)
 
 
 type Delta attr
@@ -22,9 +23,9 @@ support more than just text in the future, we should adjust the types to
 reflect this.
 -}
 type Op attr
-    = Insert Blot (List attr)
+    = Insert Blot (List (Attribute attr))
     | Delete Int
-    | Retain Int (List attr)
+    | Retain Int (List (Attribute attr))
 
 
 type Blot
@@ -102,9 +103,9 @@ encodeOp attrEncoder op =
                 ]
 
 
-encodeAttrs : (attr -> ( String, Encode.Value )) -> List attr -> Encode.Value
+encodeAttrs : (attr -> ( String, Encode.Value )) -> List (Attribute attr) -> Encode.Value
 encodeAttrs attrEncoder =
-    List.map attrEncoder >> Encode.object
+    List.map (Attribute.encode attrEncoder) >> Encode.object
 
 
 encodeBlot : Blot -> Encode.Value
@@ -129,8 +130,9 @@ decodeOp : (String -> Decoder attr) -> Decoder (Op attr)
 decodeOp attrDecoder =
     let
         decodeAttr ( key, value ) =
-            Result.toMaybe <|
-                Decode.decodeValue (attrDecoder key) value
+            value
+                |> Decode.decodeValue (Attribute.decode attrDecoder key)
+                |> Result.toMaybe
 
         decodeAttrs =
             Decode.keyValuePairs Decode.value
