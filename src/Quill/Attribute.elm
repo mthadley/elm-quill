@@ -77,7 +77,7 @@ encode encodeCustom attr =
             , Encode.string <|
                 case style of
                     Bullet ->
-                        "oullet"
+                        "bullet"
 
                     Ordered ->
                         "ordered"
