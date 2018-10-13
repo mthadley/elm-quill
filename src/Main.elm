@@ -34,7 +34,15 @@ view : Model -> Html Msg
 view model =
     Html.div []
         [ Quill.view
-            { placeholder = "Try me!"
+            { formats =
+                Quill.only
+                    [ Quill.bold
+                    , Quill.italic
+                    , Quill.underline
+                    , Quill.list
+                    , Quill.background
+                    ]
+            , placeholder = "Try me!"
             , theme = Just "snow"
             , content = model.delta
             , selection = model.selection
@@ -78,11 +86,10 @@ highLightWords =
         >> String.words
         >> List.map
             (\word ->
-                Delta.Insert
-                    (Delta.Text word)
-                    [ Attribute.Background "#ffff00" ]
+                Delta.Insert <|
+                    Delta.Text word [ Attribute.Background "#ffff00" ]
             )
-        >> List.intersperse (Delta.Insert (Delta.Text " ") [])
+        >> List.intersperse (Delta.Insert (Delta.Text " " []))
         >> Delta.fromList
 
 

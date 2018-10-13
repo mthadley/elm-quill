@@ -2,11 +2,26 @@ import Quill from 'quill';
 
 const Delta = Quill.import('delta');
 
+/**
+ * Adapts the `formats` option to be valid for use with the
+ * toolbar module options
+ */
+function normalizeToolbarFormats(formats) {
+	return formats.flatMap(
+		format =>
+			format === 'list' ? [{list: 'ordered'}, {list: 'bullet'}] : format,
+	);
+}
+
 class ElmQuill extends HTMLElement {
 	_placeholder = '';
 
+	set formats(value) {
+		this._formats = value;
+	}
+
 	set theme(value) {
-		this._theme = value
+		this._theme = value;
 	}
 
 	set placeholder(value) {
@@ -44,8 +59,12 @@ class ElmQuill extends HTMLElement {
 
 	_initQuill() {
 		this._quill = new Quill(this._element, {
+			formats: this._formats,
 			theme: this._theme,
 			placeholder: this._placeholder,
+			modules: {
+				toolbar: normalizeToolbarFormats(this._formats),
+			},
 		});
 
 		this._quill.on('editor-change', this._handleChange);

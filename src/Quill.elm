@@ -1,4 +1,20 @@
-module Quill exposing (Change, Config, view, viewCustom)
+module Quill exposing
+    ( AllowedFormat
+    , Change
+    , Config
+    , Format
+    , all
+    , background
+    , bold
+    , custom
+    , italic
+    , link
+    , list
+    , only
+    , underline
+    , view
+    , viewCustom
+    )
 
 import Html as Html exposing (Html)
 import Html.Attributes exposing (property)
@@ -11,7 +27,8 @@ import Quill.Range as Range exposing (Range)
 
 
 type alias Config msg =
-    { placeholder : String
+    { formats : AllowedFormat
+    , placeholder : String
     , onChange : Change (Attribute Never) -> msg
     , content : Delta (Attribute Never)
     , selection : Range
@@ -20,7 +37,8 @@ type alias Config msg =
 
 
 type alias CustomConfig msg attr =
-    { placeholder : String
+    { formats : AllowedFormat
+    , placeholder : String
     , onChange : Change attr -> msg
     , content : Delta attr
     , selection : Range
@@ -30,6 +48,21 @@ type alias CustomConfig msg attr =
     }
 
 
+type alias Change attr =
+    { selection : Range
+    , delta : Delta attr
+    }
+
+
+type AllowedFormat
+    = All
+    | Only (List Format)
+
+
+type Format
+    = Format String
+
+
 
 -- VIEW
 
@@ -37,7 +70,8 @@ type alias CustomConfig msg attr =
 view : Config msg -> Html msg
 view config =
     viewCustom
-        { placeholder = config.placeholder
+        { formats = config.formats
+        , placeholder = config.placeholder
         , onChange = config.onChange
         , content = config.content
         , selection = config.selection
@@ -50,7 +84,8 @@ view config =
 viewCustom : CustomConfig msg attr -> Html msg
 viewCustom config =
     Html.node "elm-quill"
-        [ property "placeholder" (Encode.string config.placeholder)
+        [ property "formats" (encodeFormat config.formats)
+        , property "placeholder" (Encode.string config.placeholder)
         , property "theme" (encodeMaybe Encode.string config.theme)
         , property "content" (Delta.encode config.attrEncoder config.content)
         , property "selection" (Range.encode config.selection)
@@ -62,10 +97,53 @@ viewCustom config =
         []
 
 
-type alias Change attr =
-    { selection : Range
-    , delta : Delta attr
-    }
+
+-- FORMATS
+
+
+all : AllowedFormat
+all =
+    All
+
+
+only : List Format -> AllowedFormat
+only =
+    Only
+
+
+bold : Format
+bold =
+    Format "bold"
+
+
+italic : Format
+italic =
+    Format "italic"
+
+
+underline : Format
+underline =
+    Format "underline"
+
+
+link : Format
+link =
+    Format "link"
+
+
+list : Format
+list =
+    Format "list"
+
+
+background : Format
+background =
+    Format "background"
+
+
+custom : String -> Format
+custom =
+    Format
 
 
 
@@ -78,6 +156,16 @@ decode attrDecoder =
         (Decode.field "range" Range.decode)
         (Decode.field "delta" <| Delta.decode attrDecoder)
         |> Decode.at [ "detail" ]
+
+
+encodeFormat : AllowedFormat -> Encode.Value
+encodeFormat allowedFormat =
+    case allowedFormat of
+        All ->
+            Encode.null
+
+        Only formats ->
+            Encode.list (\(Format name) -> Encode.string name) formats
 
 
 encodeMaybe : (a -> Encode.Value) -> Maybe a -> Encode.Value

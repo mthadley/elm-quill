@@ -23,13 +23,13 @@ support more than just text in the future, we should adjust the types to
 reflect this.
 -}
 type Op attr
-    = Insert Blot (List (Attribute attr))
+    = Insert (Blot attr)
     | Delete Int
     | Retain Int (List (Attribute attr))
 
 
-type Blot
-    = Text String
+type Blot attr
+    = Text String (List (Attribute attr))
     | Unsupported Decode.Value
 
 
@@ -39,7 +39,7 @@ type Blot
 
 init : Delta attr
 init =
-    Delta [ Insert (Text "\n") [] ]
+    Delta [ Insert (Text "\n" []) ]
 
 
 fromList : List (Op attr) -> Delta attr
@@ -56,10 +56,10 @@ toString (Delta ops) =
     let
         opToString op =
             case op of
-                Insert blot _ ->
+                Insert blot ->
                     case blot of
-                        Text string ->
-                            string
+                        Text text _ ->
+                            text
 
                         Unsupported _ ->
                             ""
@@ -87,11 +87,8 @@ encode attrEncoder (Delta attrs) =
 encodeOp : (attr -> ( String, Encode.Value )) -> Op attr -> Encode.Value
 encodeOp attrEncoder op =
     case op of
-        Insert blot attrs ->
-            Encode.object
-                [ ( "insert", encodeBlot blot )
-                , ( "attributes", encodeAttrs attrEncoder attrs )
-                ]
+        Insert blot ->
+            encodeBlot attrEncoder blot
 
         Delete count ->
             Encode.object [ ( "delete", Encode.int count ) ]
@@ -108,11 +105,14 @@ encodeAttrs attrEncoder =
     List.map (Attribute.encode attrEncoder) >> Encode.object
 
 
-encodeBlot : Blot -> Encode.Value
-encodeBlot blot =
+encodeBlot : (attr -> ( String, Encode.Value )) -> Blot attr -> Encode.Value
+encodeBlot attrEncoder blot =
     case blot of
-        Text text ->
-            Encode.string text
+        Text text attrs ->
+            Encode.object
+                [ ( "insert", Encode.string text )
+                , ( "attributes", encodeAttrs attrEncoder attrs )
+                ]
 
         Unsupported value ->
             value
@@ -141,15 +141,18 @@ decodeOp attrDecoder =
                 |> Decode.map (Maybe.withDefault [] >> List.filterMap decodeAttr)
     in
     Decode.oneOf
-        [ Decode.map2 Insert
-            (Decode.field "insert"
-                (Decode.oneOf
-                    [ Decode.map Text Decode.string
-                    , Decode.map Unsupported Decode.value
-                    ]
-                )
-            )
-            decodeAttrs
+        [ decodeInsert decodeAttrs
         , Decode.map Delete (Decode.field "delete" Decode.int)
         , Decode.map2 Retain (Decode.field "retain" Decode.int) decodeAttrs
         ]
+
+
+decodeInsert : Decoder (List (Attribute attr)) -> Decoder (Op attr)
+decodeInsert attrsDecoder =
+    Decode.map Insert <|
+        Decode.oneOf
+            [ Decode.map2 Text
+                (Decode.field "insert" Decode.string)
+                attrsDecoder
+            , Decode.map Unsupported Decode.value
+            ]
