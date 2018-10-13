@@ -30,6 +30,10 @@ type alias CustomConfig msg attr =
     }
 
 
+
+-- VIEW
+
+
 view : Config msg -> Html msg
 view config =
     viewCustom
@@ -62,6 +66,10 @@ type alias Change attr =
     { selection : Range
     , delta : Delta attr
     }
+
+
+
+-- CODECS
 
 
 decode : (String -> Decoder attr) -> Decoder (Change attr)
