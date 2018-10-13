@@ -7,6 +7,7 @@ module Quill exposing
     , background
     , bold
     , custom
+    , image
     , italic
     , link
     , list
@@ -139,6 +140,11 @@ list =
 background : Format
 background =
     Format "background"
+
+
+image : Format
+image =
+    Format "image"
 
 
 custom : String -> Format

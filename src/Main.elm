@@ -5,6 +5,7 @@ import Html as Html exposing (Html)
 import Html.Events as Events
 import Quill
 import Quill.Attribute as Attribute exposing (Attribute)
+import Quill.Attribute.Image as Image
 import Quill.Delta as Delta exposing (Delta)
 import Quill.Range as Range exposing (Range)
 
@@ -36,7 +37,8 @@ view model =
         [ Quill.view
             { formats =
                 Quill.only
-                    [ Quill.bold
+                    [ Quill.image
+                    , Quill.bold
                     , Quill.italic
                     , Quill.underline
                     , Quill.list
@@ -56,6 +58,8 @@ view model =
             ]
         , Html.button [ Events.onClick Highlight ]
             [ Html.text "Highlight Words" ]
+        , Html.button [ Events.onClick AddCat ]
+            [ Html.text "Internet Points" ]
         ]
 
 
@@ -66,6 +70,7 @@ view model =
 type Msg
     = HandleChange (Quill.Change (Attribute Never))
     | Highlight
+    | AddCat
 
 
 update : Msg -> Model -> Model
@@ -76,6 +81,17 @@ update msg model =
 
         Highlight ->
             { model | delta = highLightWords model.delta }
+
+        AddCat ->
+            let
+                imageInsert =
+                    Delta.Insert <|
+                        Delta.Image "https://source.unsplash.com/random?cat"
+                            [ Image.Alt "A cute cat."
+                            , Image.Height 300
+                            ]
+            in
+            { model | delta = Delta.cons imageInsert model.delta }
 
 
 {-| This logic is very simple, but it gives an idea of what we can do!

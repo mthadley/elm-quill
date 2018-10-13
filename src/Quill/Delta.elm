@@ -2,6 +2,7 @@ module Quill.Delta exposing
     ( Blot(..)
     , Delta
     , Op(..)
+    , cons
     , decode
     , encode
     , fromList
@@ -12,6 +13,7 @@ module Quill.Delta exposing
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Quill.Attribute as Attribute exposing (Attribute)
+import Quill.Attribute.Image as Image
 
 
 type Delta attr
@@ -30,6 +32,7 @@ type Op attr
 
 type Blot attr
     = Text String (List (Attribute attr))
+    | Image String (List Image.Attribute)
     | Unsupported Decode.Value
 
 
@@ -51,6 +54,11 @@ fromList =
 -- HELPERS
 
 
+cons : Op attr -> Delta attr -> Delta attr
+cons op (Delta ops) =
+    Delta (op :: ops)
+
+
 toString : Delta attr -> String
 toString (Delta ops) =
     let
@@ -60,6 +68,9 @@ toString (Delta ops) =
                     case blot of
                         Text text _ ->
                             text
+
+                        Image _ _ ->
+                            ""
 
                         Unsupported _ ->
                             ""
@@ -114,6 +125,12 @@ encodeBlot attrEncoder blot =
                 , ( "attributes", encodeAttrs attrEncoder attrs )
                 ]
 
+        Image url attrs ->
+            Encode.object
+                [ ( "insert", Encode.object [ ( "image", Encode.string url ) ] )
+                , ( "attributes", Encode.object <| List.map Image.encode attrs )
+                ]
+
         Unsupported value ->
             value
 
@@ -129,16 +146,8 @@ decode attrDecoder =
 decodeOp : (String -> Decoder attr) -> Decoder (Op attr)
 decodeOp attrDecoder =
     let
-        decodeAttr ( key, value ) =
-            value
-                |> Decode.decodeValue (Attribute.decode attrDecoder key)
-                |> Result.toMaybe
-
         decodeAttrs =
-            Decode.keyValuePairs Decode.value
-                |> Decode.field "attributes"
-                |> Decode.maybe
-                |> Decode.map (Maybe.withDefault [] >> List.filterMap decodeAttr)
+            decodeAttrsWith (Attribute.decode attrDecoder)
     in
     Decode.oneOf
         [ decodeInsert decodeAttrs
@@ -154,5 +163,22 @@ decodeInsert attrsDecoder =
             [ Decode.map2 Text
                 (Decode.field "insert" Decode.string)
                 attrsDecoder
+            , Decode.map2 Image
+                (Decode.at [ "insert", "image" ] Decode.string)
+                (decodeAttrsWith Image.decode)
             , Decode.map Unsupported Decode.value
             ]
+
+
+decodeAttrsWith : (String -> Decoder a) -> Decoder (List a)
+decodeAttrsWith decoder =
+    let
+        decodeAttr ( key, value ) =
+            value
+                |> Decode.decodeValue (decoder key)
+                |> Result.toMaybe
+    in
+    Decode.keyValuePairs Decode.value
+        |> Decode.field "attributes"
+        |> Decode.maybe
+        |> Decode.map (Maybe.withDefault [] >> List.filterMap decodeAttr)
