@@ -48,6 +48,7 @@ view model =
                     ]
             , placeholder = "Try me!"
             , theme = Just "snow"
+            , readOnly = model.highlighting
             , content = model.delta
             , selection = model.selection
             , onChange = HandleChange
@@ -96,10 +97,6 @@ update msg model =
 
                         else
                             model.delta
-                    , selection =
-                        { index = selection.index + selection.length
-                        , length = 0
-                        }
                 }
 
             else

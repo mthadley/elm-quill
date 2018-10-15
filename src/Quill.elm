@@ -31,6 +31,7 @@ type alias Config msg =
     { formats : AllowedFormat
     , placeholder : String
     , onChange : Change (Attribute Never) -> msg
+    , readOnly : Bool
     , content : Delta (Attribute Never)
     , selection : Range
     , theme : Maybe String
@@ -41,6 +42,7 @@ type alias CustomConfig msg attr =
     { formats : AllowedFormat
     , placeholder : String
     , onChange : Change attr -> msg
+    , readOnly : Bool
     , content : Delta attr
     , selection : Range
     , theme : Maybe String
@@ -74,6 +76,7 @@ view config =
         { formats = config.formats
         , placeholder = config.placeholder
         , onChange = config.onChange
+        , readOnly = config.readOnly
         , content = config.content
         , selection = config.selection
         , theme = config.theme
@@ -88,6 +91,7 @@ viewCustom config =
         [ property "formats" (encodeFormat config.formats)
         , property "placeholder" (Encode.string config.placeholder)
         , property "theme" (encodeMaybe Encode.string config.theme)
+        , property "readOnly" (Encode.bool config.readOnly)
         , property "content" (Delta.encode config.attrEncoder config.content)
         , property "selection" (Range.encode config.selection)
         , config.attrDecoder

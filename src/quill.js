@@ -15,9 +15,18 @@ function normalizeToolbarFormats(formats) {
 
 class ElmQuill extends HTMLElement {
 	_placeholder = '';
+	_readOnly = false;
 
 	set formats(value) {
 		this._formats = value;
+	}
+
+	set readOnly(value) {
+		this._readOnly = value;
+
+		if (this._quill) {
+			this._quill.enable(!value);
+		}
 	}
 
 	set theme(value) {
@@ -31,17 +40,13 @@ class ElmQuill extends HTMLElement {
 	set content(content) {
 		this._content = new Delta(content);
 
-		if (this._quill) {
-			this._updateQuill();
-		}
+		this._updateQuill();
 	}
 
 	set selection(range) {
 		this._selection = range;
 
-		if (this._quill) {
-			this._updateQuill();
-		}
+		this._updateQuill();
 	}
 
 	connectedCallback() {
