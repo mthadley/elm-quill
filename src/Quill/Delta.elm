@@ -5,7 +5,9 @@ module Quill.Delta exposing
     , cons
     , decode
     , encode
+    , format
     , fromList
+    , fromString
     , init
     , toString
     )
@@ -14,6 +16,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Quill.Attribute as Attribute exposing (Attribute)
 import Quill.Attribute.Image as Image
+import Quill.Range exposing (Range)
 
 
 type Delta attr
@@ -42,12 +45,17 @@ type Blot attr
 
 init : Delta attr
 init =
-    Delta [ Insert (Text "\n" []) ]
+    Delta [ Insert <| Text "\n" [] ]
 
 
 fromList : List (Op attr) -> Delta attr
 fromList =
     Delta
+
+
+fromString : String -> Delta attr
+fromString text =
+    Delta [ Insert <| Text text [] ]
 
 
 
@@ -57,6 +65,87 @@ fromList =
 cons : Op attr -> Delta attr -> Delta attr
 cons op (Delta ops) =
     Delta (op :: ops)
+
+
+append : Delta attr -> Delta attr -> Delta attr
+append (Delta a) (Delta b) =
+    Delta (a ++ b)
+
+
+format : Attribute attr -> Range -> Delta attr -> Delta attr
+format attr range ((Delta someOps) as delta) =
+    case ( range.length, someOps ) of
+        ( 0, _ ) ->
+            delta
+
+        ( _, [] ) ->
+            delta
+
+        ( length, op :: rest ) ->
+            if range.index < opLength op then
+                append
+                    (fromList <| applyFormat attr range op)
+                    (format
+                        attr
+                        { length = max (length - (opLength op - range.index)) 0
+                        , index = max (range.index - opLength op) 0
+                        }
+                        (fromList rest)
+                    )
+
+            else
+                append
+                    (fromList [ op ])
+                    (format
+                        attr
+                        { range | index = range.index - opLength op }
+                        (fromList rest)
+                    )
+
+
+applyFormat : Attribute attr -> Range -> Op attr -> List (Op attr)
+applyFormat attr { index, length } op =
+    case op of
+        Insert blot ->
+            case blot of
+                Text text attrs ->
+                    [ Insert <| Text (String.left index text) attrs
+                    , Insert <| Text (String.slice index (index + length) text) <| attrs ++ [ attr ]
+                    , Insert <| Text (String.dropLeft (index + length) text) attrs
+                    ]
+
+                Image _ _ ->
+                    [ op ]
+
+                Unsupported _ ->
+                    [ op ]
+
+        Delete _ ->
+            [ op ]
+
+        Retain retainLength attrs ->
+            [ op ]
+
+
+opLength : Op attr -> Int
+opLength op =
+    case op of
+        Insert blot ->
+            case blot of
+                Text string _ ->
+                    String.length string
+
+                Image _ _ ->
+                    1
+
+                Unsupported _ ->
+                    1
+
+        Delete length ->
+            length
+
+        Retain length _ ->
+            length
 
 
 toString : Delta attr -> String
