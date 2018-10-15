@@ -85,12 +85,16 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         HandleChange { selection, delta } ->
-            if model.highlighting && selection.length > 0 then
+            if model.highlighting then
                 { model
                     | delta =
-                        Delta.format
-                            (Attribute.Background "#ffff00")
-                            selection
+                        if selection.length > 0 then
+                            Delta.format
+                                (Attribute.Background "#ffff00")
+                                selection
+                                model.delta
+
+                        else
                             model.delta
                     , selection =
                         { index = selection.index + selection.length
