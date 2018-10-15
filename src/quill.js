@@ -65,6 +65,7 @@ class ElmQuill extends HTMLElement {
 	_initQuill() {
 		this._quill = new Quill(this._element, {
 			formats: this._formats,
+			readOnly: this._readOnly,
 			theme: this._theme,
 			placeholder: this._placeholder,
 			modules: {
