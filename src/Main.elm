@@ -97,6 +97,7 @@ update msg model =
 
                         else
                             model.delta
+                    , selection = { selection | length = 0 }
                 }
 
             else
