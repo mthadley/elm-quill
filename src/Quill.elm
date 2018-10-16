@@ -70,9 +70,10 @@ type Format
 -- VIEW
 
 
-view : Config msg -> Html msg
-view config =
+view : List (Html.Attribute msg) -> Config msg -> Html msg
+view attributes config =
     viewCustom
+        attributes
         { formats = config.formats
         , placeholder = config.placeholder
         , onChange = config.onChange
@@ -85,20 +86,22 @@ view config =
         }
 
 
-viewCustom : CustomConfig msg attr -> Html msg
-viewCustom config =
+viewCustom : List (Html.Attribute msg) -> CustomConfig msg attr -> Html msg
+viewCustom attributes config =
     Html.node "elm-quill"
-        [ property "formats" (encodeFormat config.formats)
-        , property "placeholder" (Encode.string config.placeholder)
-        , property "theme" (encodeMaybe Encode.string config.theme)
-        , property "readOnly" (Encode.bool config.readOnly)
-        , property "content" (Delta.encode config.attrEncoder config.content)
-        , property "selection" (Range.encode config.selection)
-        , config.attrDecoder
-            |> decode
-            |> Decode.map config.onChange
-            |> on "change"
-        ]
+        (attributes
+            ++ [ property "formats" (encodeFormat config.formats)
+               , property "placeholder" (Encode.string config.placeholder)
+               , property "theme" (encodeMaybe Encode.string config.theme)
+               , property "readOnly" (Encode.bool config.readOnly)
+               , property "content" (Delta.encode config.attrEncoder config.content)
+               , property "selection" (Range.encode config.selection)
+               , config.attrDecoder
+                    |> decode
+                    |> Decode.map config.onChange
+                    |> on "change"
+               ]
+        )
         []
 
 

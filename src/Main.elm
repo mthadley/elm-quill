@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser
 import Css exposing (hex, px)
 import Css.Global exposing (class, descendants, typeSelector)
+import Html.Events as HtmlEvents
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events as Events
@@ -42,6 +43,7 @@ view : Model -> Html Msg
 view model =
     Html.div [ css (highlightStyles model.highlighting) ]
         [ Quill.viewCustom
+            [ HtmlEvents.on "highlightclick" decodeHighlightClick ]
             { formats =
                 Quill.only
                     [ Quill.image
@@ -88,6 +90,7 @@ view model =
 type Msg
     = HandleChange (Quill.Change CustomAttr)
     | ToggleHighlighting
+    | HighlightClick Range
     | AddCat
 
 
@@ -115,6 +118,13 @@ update msg model =
         ToggleHighlighting ->
             { model | highlighting = not model.highlighting }
 
+        HighlightClick range ->
+            if model.highlighting then
+                { model | delta = removeHighlight range model.delta }
+
+            else
+                model
+
         AddCat ->
             let
                 imageInsert =
@@ -135,6 +145,20 @@ type CustomAttr
     = Highlight
 
 
+removeHighlight : Range -> Delta CustomAttr -> Delta CustomAttr
+removeHighlight =
+    Delta.filterFormat <|
+        \attr ->
+            case attr of
+                Attribute.Custom customAttr ->
+                    case customAttr of
+                        Highlight ->
+                            False
+
+                _ ->
+                    True
+
+
 decodeCustomAttr : String -> Decoder CustomAttr
 decodeCustomAttr name =
     case name of
@@ -150,6 +174,12 @@ encodeCustomAttr customAttr =
     case customAttr of
         Highlight ->
             ( "highlight", Encode.bool True )
+
+
+decodeHighlightClick : Decoder Msg
+decodeHighlightClick =
+    Decode.map HighlightClick
+        (Decode.field "detail" Range.decode)
 
 
 

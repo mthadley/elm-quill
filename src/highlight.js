@@ -24,11 +24,20 @@ export default class Highlight extends Inline {
 		}
 	}
 
+	dispatchEvent(detail) {
+		const event = new CustomEvent('highlightclick', {
+			bubbles: true,
+			detail,
+		});
+
+		this.domNode.dispatchEvent(event);
+	}
+
 	/**
 	 * TODO: Move this logic to the Elm side, possibly by triggering
 	 * a custom event here.
 	 */
-	handleClick = (event) => {
+	handleClick = event => {
 		event.stopPropagation();
 
 		const node = this.domNode.closest('#quillRoot');
@@ -39,7 +48,7 @@ export default class Highlight extends Inline {
 		const index = this.offset(this.scroll);
 		const length = this.length();
 
-		quill.formatText(index, length, 'highlight', false);
+		this.dispatchEvent({index, length});
 	};
 }
 

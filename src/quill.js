@@ -7,10 +7,12 @@ const Delta = Quill.import('delta');
  * toolbar module options
  */
 function normalizeToolbarFormats(formats) {
-	return formats.flatMap(
-		format =>
-			format === 'list' ? [{list: 'ordered'}, {list: 'bullet'}] : format,
-	);
+	return formats
+		.flatMap(
+			format =>
+				format === 'list' ? [{list: 'ordered'}, {list: 'bullet'}] : format,
+		)
+		.filter(format => format !== 'highlight');
 }
 
 class ElmQuill extends HTMLElement {

@@ -5,6 +5,7 @@ module Quill.Delta exposing
     , cons
     , decode
     , encode
+    , filterFormat
     , format
     , fromList
     , fromString
@@ -73,7 +74,17 @@ append (Delta a) (Delta b) =
 
 
 format : Attribute attr -> Range -> Delta attr -> Delta attr
-format attr range ((Delta someOps) as delta) =
+format attr =
+    mapAttrs (\attrs -> attrs ++ [ attr ])
+
+
+filterFormat : (Attribute attr -> Bool) -> Range -> Delta attr -> Delta attr
+filterFormat f =
+    mapAttrs (List.filter f)
+
+
+mapAttrs : (List (Attribute attr) -> List (Attribute attr)) -> Range -> Delta attr -> Delta attr
+mapAttrs f range ((Delta someOps) as delta) =
     case ( range.length, someOps ) of
         ( 0, _ ) ->
             delta
@@ -84,9 +95,9 @@ format attr range ((Delta someOps) as delta) =
         ( length, op :: rest ) ->
             if range.index < opLength op then
                 append
-                    (fromList <| applyFormat attr range op)
-                    (format
-                        attr
+                    (fromList <| applyMapper f range op)
+                    (mapAttrs
+                        f
                         { length = max (length - (opLength op - range.index)) 0
                         , index = max (range.index - opLength op) 0
                         }
@@ -96,21 +107,21 @@ format attr range ((Delta someOps) as delta) =
             else
                 append
                     (fromList [ op ])
-                    (format
-                        attr
+                    (mapAttrs
+                        f
                         { range | index = range.index - opLength op }
                         (fromList rest)
                     )
 
 
-applyFormat : Attribute attr -> Range -> Op attr -> List (Op attr)
-applyFormat attr { index, length } op =
+applyMapper : (List (Attribute attr) -> List (Attribute attr)) -> Range -> Op attr -> List (Op attr)
+applyMapper f { index, length } op =
     case op of
         Insert blot ->
             case blot of
                 Text text attrs ->
                     [ Insert <| Text (String.left index text) attrs
-                    , Insert <| Text (String.slice index (index + length) text) <| attrs ++ [ attr ]
+                    , Insert <| Text (String.slice index (index + length) text) <| f attrs
                     , Insert <| Text (String.dropLeft (index + length) text) attrs
                     ]
 
