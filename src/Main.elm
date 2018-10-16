@@ -17,7 +17,7 @@ import Quill.Range as Range exposing (Range)
 type alias Model =
     { selection : Range
     , highlighting : Bool
-    , delta : Delta (Attribute Never)
+    , delta : Delta Never
     }
 
 
@@ -77,7 +77,7 @@ view model =
 
 
 type Msg
-    = HandleChange (Quill.Change (Attribute Never))
+    = HandleChange (Quill.Change Never)
     | Highlight
     | AddCat
 

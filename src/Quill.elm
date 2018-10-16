@@ -30,9 +30,9 @@ import Quill.Range as Range exposing (Range)
 type alias Config msg =
     { formats : AllowedFormat
     , placeholder : String
-    , onChange : Change (Attribute Never) -> msg
+    , onChange : Change Never -> msg
     , readOnly : Bool
-    , content : Delta (Attribute Never)
+    , content : Delta Never
     , selection : Range
     , theme : Maybe String
     }
