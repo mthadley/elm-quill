@@ -102,10 +102,10 @@ update msg model =
                             Delta.format
                                 (Attribute.Custom Highlight)
                                 selection
-                                model.delta
+                                delta
 
                         else
-                            model.delta
+                            delta
                     , selection = { selection | length = 0 }
                 }
 
