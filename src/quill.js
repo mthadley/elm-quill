@@ -85,28 +85,23 @@ class ElmQuill extends HTMLElement {
 				.diff(this._content)
 				.length()
 		) {
-			this._quill.setContents(this._content, 'silent');
+			this._quill.setContents(this._content, 'elm');
 		}
 
-		this._quill.setSelection(this._selection, 'silent');
+		this._quill.setSelection(this._selection, 'elm');
 	}
 
 	_handleChange = (eventName, rangeOrDelta, oldRangeOrDelta, source) => {
-		if (source === 'silent') return;
+		if (source === 'elm') return;
 
-		/**
-		 * Schedule the event for later, which batches any other updates.
-		 */
-		setTimeout(() => {
-			const event = new CustomEvent('change', {
-				detail: {
-					delta: this._quill.getContents(),
-					range: this._quill.getSelection(),
-				},
-			});
-
-			this.dispatchEvent(event);
+		const event = new CustomEvent('change', {
+			detail: {
+				delta: this._quill.getContents(),
+				range: this._quill.getSelection(),
+			},
 		});
+
+		this.dispatchEvent(event);
 	};
 }
 
