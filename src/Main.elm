@@ -1,8 +1,13 @@
 module Main exposing (main)
 
 import Browser
-import Html as Html exposing (Html)
-import Html.Events as Events
+import Css exposing (hex, px)
+import Css.Global exposing (class, descendants, typeSelector)
+import Html.Styled as Html exposing (Html)
+import Html.Styled.Attributes exposing (css)
+import Html.Styled.Events as Events
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode
 import Quill
 import Quill.Attribute as Attribute exposing (Attribute)
 import Quill.Attribute.Image as Image
@@ -17,7 +22,7 @@ import Quill.Range as Range exposing (Range)
 type alias Model =
     { selection : Range
     , highlighting : Bool
-    , delta : Delta Never
+    , delta : Delta CustomAttr
     }
 
 
@@ -35,8 +40,8 @@ init =
 
 view : Model -> Html Msg
 view model =
-    Html.div []
-        [ Quill.view
+    Html.div [ css (highlightStyles model.highlighting) ]
+        [ Quill.viewCustom
             { formats =
                 Quill.only
                     [ Quill.image
@@ -45,6 +50,7 @@ view model =
                     , Quill.underline
                     , Quill.list
                     , Quill.background
+                    , Quill.custom "highlight"
                     ]
             , placeholder = "Try me!"
             , theme = Just "snow"
@@ -52,14 +58,17 @@ view model =
             , content = model.delta
             , selection = model.selection
             , onChange = HandleChange
+            , attrDecoder = decodeCustomAttr
+            , attrEncoder = encodeCustomAttr
             }
+            |> Html.fromUnstyled
         , Html.pre []
             [ Html.text (Range.debug model.selection)
             ]
         , Html.pre []
             [ Html.text (Debug.toString model.delta)
             ]
-        , Html.button [ Events.onClick Highlight ]
+        , Html.button [ Events.onClick ToggleHighlighting ]
             [ Html.text <|
                 if model.highlighting then
                     "Stop Highlighting"
@@ -77,8 +86,8 @@ view model =
 
 
 type Msg
-    = HandleChange (Quill.Change Never)
-    | Highlight
+    = HandleChange (Quill.Change CustomAttr)
+    | ToggleHighlighting
     | AddCat
 
 
@@ -91,7 +100,7 @@ update msg model =
                     | delta =
                         if selection.length > 0 then
                             Delta.format
-                                (Attribute.Background "#ffff00")
+                                (Attribute.Custom Highlight)
                                 selection
                                 model.delta
 
@@ -103,7 +112,7 @@ update msg model =
             else
                 { model | selection = selection, delta = delta }
 
-        Highlight ->
+        ToggleHighlighting ->
             { model | highlighting = not model.highlighting }
 
         AddCat ->
@@ -119,6 +128,31 @@ update msg model =
 
 
 
+-- CUSTOM ATTR
+
+
+type CustomAttr
+    = Highlight
+
+
+decodeCustomAttr : String -> Decoder CustomAttr
+decodeCustomAttr name =
+    case name of
+        "highlight" ->
+            Decode.succeed Highlight
+
+        invalid ->
+            Decode.fail <| "Invalid custom attribute: \"" ++ invalid ++ "\""
+
+
+encodeCustomAttr : CustomAttr -> ( String, Encode.Value )
+encodeCustomAttr customAttr =
+    case customAttr of
+        Highlight ->
+            ( "highlight", Encode.bool True )
+
+
+
 -- MAIN
 
 
@@ -126,9 +160,36 @@ main : Program () Model Msg
 main =
     Browser.sandbox
         { init = init
-        , view = view
+        , view = Html.toUnstyled << view
         , update = update
         }
+
+
+
+-- CSS
+
+
+highlightStyles : Bool -> List Css.Style
+highlightStyles highlighting =
+    [ descendants
+        [ class "highlight"
+            [ Css.backgroundColor (hex "FF0")
+            , Css.color Css.inherit
+            , Css.fontWeight Css.inherit
+            , Css.property "transition" "background-color 0.4s ease"
+            , Css.batch <|
+                if highlighting then
+                    [ Css.cursor Css.pointer
+                    , Css.hover
+                        [ Css.backgroundColor (hex "DDA")
+                        ]
+                    ]
+
+                else
+                    []
+            ]
+        ]
+    ]
 
 
 
